@@ -71,9 +71,8 @@
 
 <body>
 
-  <div class="container">
-    <h1>Attendance</h1>
-    <p>Tap below to record your time</p>
+ <div class="container">
+    <h1 id="greeting">Welcome</h1> <p>Tap below to record your time</p>
 
     <button class="checkin" onclick="sendAction('checkin')">
       ✅ Check In
@@ -84,7 +83,7 @@
     </button>
 
     <div class="status" id="status"></div>
-  </div>
+</div>
 
   <script>
     const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance";
@@ -92,6 +91,22 @@
     // Get staffId from URL
     const urlParams = new URLSearchParams(window.location.search);
     const staffId = urlParams.get("staffId");
+
+    // --- NEW: FETCH NAME ON PAGE LOAD ---
+    window.onload = function() {
+      if (staffId) {
+        fetch(`${webhookBase}?staffId=${staffId}&action=load`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.display_name) {
+              document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
+            }
+          })
+          .catch(err => console.log("Initial load error:", err));
+      } else {
+        document.getElementById("status").innerText = "Missing staff ID!";
+      }
+    };
 
     function sendAction(action) {
       if (!staffId) {
@@ -107,7 +122,7 @@
             sendRequest(action, position.coords.latitude, position.coords.longitude);
           },
           () => {
-            sendRequest(action, null, null);
+            sendRequest(action, null, null); // Proceed even if GPS fails
           }
         );
       } else {
@@ -116,21 +131,20 @@
     }
 
     function sendRequest(action, lat, lon) {
-      let url = `${webhookBase}?staffId=${staffId}&action=${action}`;
+  let url = `${webhookBase}?staffId=${staffId}&action=${action}`;
+  if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
 
-      if (lat && lon) {
-        url += `&lat=${lat}&lon=${lon}`;
-      }
-
-      fetch(url)
-        .then(() => {
-          document.getElementById("status").innerText = "✅ Recorded successfully!";
-        })
-        .catch(() => {
-          document.getElementById("status").innerText = "❌ Error. Try again.";
-        });
-    }
-  </script>
+  fetch(url)
+    .then(response => response.json()) // 👈 This reads the JSON from n8n
+    .then((data) => {
+      // This displays the "message" we just typed into n8n
+      document.getElementById("status").innerText = data.message; 
+    })
+    .catch(() => {
+      document.getElementById("status").innerText = "❌ Connection Error.";
+    });
+}
+</script>
 
 </body>
 </html>
