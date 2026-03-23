@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Staff Attendance</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .checkin {
+      background: #22c55e;
+      color: white;
+    }
+
+    .checkout {
+      background: #ef4444;
+      color: white;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Attendance</h1>
+    <p>Tap below to record your time</p>
+
+    <button class="checkin" onclick="sendAction('checkin')">
+      ✅ Check In
+    </button>
+
+    <button class="checkout" onclick="sendAction('checkout')">
+      ❌ Check Out
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const webhookBase = "https://YOUR-N8N-URL/webhook/attendance";
+
+    // Get staffId from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const staffId = urlParams.get("staffId");
+
+    function sendAction(action) {
+      if (!staffId) {
+        document.getElementById("status").innerText = "Missing staff ID!";
+        return;
+      }
+
+      document.getElementById("status").innerText = "Processing...";
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            sendRequest(action, position.coords.latitude, position.coords.longitude);
+          },
+          () => {
+            sendRequest(action, null, null);
+          }
+        );
+      } else {
+        sendRequest(action, null, null);
+      }
+    }
+
+    function sendRequest(action, lat, lon) {
+      let url = `${webhookBase}?staffId=${staffId}&action=${action}`;
+
+      if (lat && lon) {
+        url += `&lat=${lat}&lon=${lon}`;
+      }
+
+      fetch(url)
+        .then(() => {
+          document.getElementById("status").innerText = "✅ Recorded successfully!";
+        })
+        .catch(() => {
+          document.getElementById("status").innerText = "❌ Error. Try again.";
+        });
+    }
+  </script>
+
+</body>
+</html>
