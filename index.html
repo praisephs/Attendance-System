@@ -130,18 +130,20 @@
       }
     }
 
-    function sendRequest(action, lat, lon) {
+   function sendRequest(action, lat, lon) {
   let url = `${webhookBase}?staffId=${staffId}&action=${action}`;
   if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
 
+  document.getElementById("status").innerText = "Processing...";
+
   fetch(url)
-    .then(response => response.json()) // 👈 This reads the JSON from n8n
+    .then(response => response.json())
     .then((data) => {
-      // This displays the "message" we just typed into n8n
-      document.getElementById("status").innerText = data.message; 
+      // This will now show "✅ Attendance recorded at 03:22 PM!"
+      document.getElementById("status").innerText = data.message;
     })
     .catch(() => {
-      document.getElementById("status").innerText = "❌ Connection Error.";
+      document.getElementById("status").innerText = "❌ Connection Error. Please try again.";
     });
 }
 </script>
