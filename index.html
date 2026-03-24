@@ -93,14 +93,28 @@
     const staffId = urlParams.get("staffId");
 
     // --- NEW: FETCH NAME ON PAGE LOAD ---
-   window.onload = function() {
+  window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get('action');
     const staffId = urlParams.get('staffId');
 
     if (staffId) {
-        // 1. If the link came from the Email 'confirm' trigger
+        // STEP 1: Always fetch the staff name immediately
+        fetch(`${webhookBase}?staffId=${staffId}&action=load`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.display_name) {
+                    document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
+                }
+            })
+            .catch(err => console.log("Name fetch error:", err));
+
+        // STEP 2: Check if this is a scheduled verification
         if (action === 'confirm') {
+            // UI Polish: Hide check-in/out buttons so they don't get confused
+            const btnContainer = document.querySelector(".button-container");
+            if (btnContainer) btnContainer.style.display = "none";
+            
             document.getElementById("status").innerText = "📍 Verifying location... please wait.";
             document.getElementById("status").style.color = "#007bff";
 
@@ -113,17 +127,6 @@
                 document.getElementById("status").innerText = "❌ Error: Please enable GPS to verify presence.";
                 document.getElementById("status").style.color = "red";
             });
-
-        } else {
-            // 2. Normal 'load' behavior (Greeting only)
-            fetch(`${webhookBase}?staffId=${staffId}&action=load`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.display_name) {
-                        document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
-                    }
-                })
-                .catch(err => console.log("Initial load error:", err));
         }
     } else {
         document.getElementById("status").innerText = "Missing staff ID!";
