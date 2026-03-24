@@ -72,15 +72,19 @@
 <body>
 
  <div class="container">
-    <h1 id="greeting">Welcome</h1> <p>Tap below to record your time</p>
+    <h1 id="greeting">Welcome</h1> 
+    
+    <p id="instruction">Tap below to record your time</p>
 
-    <button class="checkin" onclick="sendAction('checkin')">
-      ✅ Check In
-    </button>
+    <div id="button-group">
+        <button class="checkin" onclick="sendAction('checkin')">
+          ✅ Check In
+        </button>
 
-    <button class="checkout" onclick="sendAction('checkout')">
-      ❌ Check Out
-    </button>
+        <button class="checkout" onclick="sendAction('checkout')">
+          ❌ Check Out
+        </button>
+    </div>
 
     <div class="status" id="status"></div>
 </div>
@@ -93,43 +97,38 @@
     const staffId = urlParams.get("staffId");
 
     // --- NEW: FETCH NAME ON PAGE LOAD ---
-  window.onload = function() {
+ window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get('action');
     const staffId = urlParams.get('staffId');
 
     if (staffId) {
-        // STEP 1: Always fetch the staff name immediately
+        // 1. Always show the staff name
         fetch(`${webhookBase}?staffId=${staffId}&action=load`)
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 if (data.display_name) {
                     document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
                 }
-            })
-            .catch(err => console.log("Name fetch error:", err));
+            });
 
-        // STEP 2: Check if this is a scheduled verification
+        // 2. If this is a scheduled verification link
         if (action === 'confirm') {
-            // UI Polish: Hide check-in/out buttons so they don't get confused
-            const btnContainer = document.querySelector(".button-container");
-            if (btnContainer) btnContainer.style.display = "none";
+            // HIDE the buttons and the instruction text
+            document.getElementById("button-group").style.display = "none";
+            document.getElementById("instruction").style.display = "none";
             
-            document.getElementById("status").innerText = "📍 Verifying location... please wait.";
-            document.getElementById("status").style.color = "#007bff";
+            // Update the header to show they are in verification mode
+            document.getElementById("greeting").innerText = "Verification Mode";
+            document.getElementById("status").innerText = "📍 Confirming your location...";
 
-            // Automatically capture and send GPS
+            // Auto-trigger GPS
             navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                sendRequest('confirm', lat, lon);
+                sendRequest('confirm', position.coords.latitude, position.coords.longitude);
             }, (error) => {
-                document.getElementById("status").innerText = "❌ Error: Please enable GPS to verify presence.";
-                document.getElementById("status").style.color = "red";
+                document.getElementById("status").innerText = "❌ Please enable GPS to verify.";
             });
         }
-    } else {
-        document.getElementById("status").innerText = "Missing staff ID!";
     }
 };
 
