@@ -130,7 +130,7 @@
       }
     }
 
-   function sendRequest(action, lat, lon) {
+function sendRequest(action, lat, lon) {
   let url = `${webhookBase}?staffId=${staffId}&action=${action}`;
   if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
 
@@ -139,13 +139,24 @@
   fetch(url)
     .then(response => response.json())
     .then((data) => {
-      // This will now show "✅ Attendance recorded at 03:22 PM!"
-      document.getElementById("status").innerText = data.message;
+      const statusElement = document.getElementById("status");
+      statusElement.innerText = data.message;
+
+      // The Checkmate Logic
+      if (data.message.includes("NOT AT WORKSTATION")) {
+        statusElement.style.color = "#ff4d4d"; // Scary Red
+        statusElement.style.fontWeight = "bold";
+      } else {
+        statusElement.style.color = "#4BB543"; // Success Green
+        statusElement.style.fontWeight = "normal";
+      }
     })
-    .catch(() => {
-      document.getElementById("status").innerText = "❌ Connection Error. Please try again.";
+    .catch((err) => {
+      document.getElementById("status").innerText = "❌ Connection Error. Try again.";
+      document.getElementById("status").style.color = "#ff4d4d";
     });
 }
+    
 </script>
 
 </body>
