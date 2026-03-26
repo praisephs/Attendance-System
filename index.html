@@ -27,14 +27,8 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
-    h1 {
-      margin-bottom: 10px;
-    }
-
-    p {
-      color: #94a3b8;
-      margin-bottom: 20px;
-    }
+    h1 { margin-bottom: 10px; }
+    p { color: #94a3b8; margin-bottom: 20px; }
 
     button {
       width: 100%;
@@ -47,41 +41,31 @@
       transition: 0.3s;
     }
 
-    .checkin {
-      background: #22c55e;
-      color: white;
-    }
-
-    .checkout {
-      background: #ef4444;
-      color: white;
-    }
-
-    button:hover {
-      opacity: 0.85;
-    }
+    .checkin { background: #22c55e; color: white; }
+    .checkout { background: #ef4444; color: white; }
+    button:hover { opacity: 0.85; }
 
     .status {
       margin-top: 15px;
       font-size: 14px;
       color: #38bdf8;
     }
-    #close-btn {
-    background-color: #d32f2f; /* Professional Red */
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    font-size: 18px;
-    font-weight: bold;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-}
 
-  #close-btn:active {
-      transform: scale(0.95); /* Makes it feel like a real button click */
-}
-    
+    #close-btn {
+      background-color: #d32f2f;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+      display: none; 
+      margin-top: 20px;
+    }
+
+    #close-btn:active { transform: scale(0.95); }
   </style>
 </head>
 
@@ -89,26 +73,19 @@
 
   <audio id="successSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
- <div class="container">
+  <div class="container">
     <h1 id="greeting">Welcome</h1> 
-    
     <p id="instruction">Tap below to record your time</p>
 
     <div id="button-group">
-        <button class="checkin" onclick="sendAction('checkin')">
-          ✅ Check In
-        </button>
-
-        <button class="checkout" onclick="sendAction('checkout')">
-          ❌ Check Out
-        </button>
+        <button class="checkin" onclick="sendAction('checkin')">✅ Check In</button>
+        <button class="checkout" onclick="sendAction('checkout')">❌ Check Out</button>
     </div>
 
     <div class="status" id="status"></div>
-   <button id="close-btn" style="display:none; margin-top: 20px; background-color: #333; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;" onclick="window.close();">
-  🔴 Close & Exit
-</button>
-</div>
+    
+    <button id="close-btn" onclick="closeSystem()">🔴 Close & Exit</button>
+  </div>
 
 <script>
     // 1. GLOBAL VARIABLES
@@ -120,7 +97,6 @@
     // 2. PAGE LOAD LOGIC
     window.onload = function() {
         if (staffId) {
-            // Fetch the staff name
             fetch(`${webhookBase}?staffId=${staffId}&action=load`)
                 .then(res => res.json())
                 .then(data => {
@@ -130,7 +106,6 @@
                 })
                 .catch(err => console.log("Load error:", err));
 
-            // Logic for Verification Mode (from Email)
             if (action === 'confirm') {
                 document.getElementById("button-group").style.display = "none";
                 document.getElementById("instruction").style.display = "none";
@@ -150,7 +125,7 @@
 
     // 3. MANUAL BUTTON TRIGGER
     function sendAction(actionType) {
-        document.getElementById("successSound").load(); // Wake up audio
+        document.getElementById("successSound").load();
         document.getElementById("status").innerText = "Processing...";
 
         if (navigator.geolocation) {
@@ -159,7 +134,7 @@
                     sendRequest(actionType, position.coords.latitude, position.coords.longitude);
                 },
                 () => {
-                    sendRequest(actionType, null, null); // Fallback if GPS fails
+                    sendRequest(actionType, null, null);
                 }
             );
         } else {
@@ -181,30 +156,41 @@
 
                 statusElement.innerText = data.message;
 
-               // --- SUCCESS CHECK ---
-const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error") && !data.message.includes("NOT AT WORKSTATION");
+                const isActuallySuccess = !data.message.includes("already checked in") && 
+                                         !data.message.includes("Error") && 
+                                         !data.message.includes("NOT AT WORKSTATION");
 
-if (isActuallySuccess) {
-    // 1. Update text
-    document.getElementById("instruction").innerText = "Success! You can now exit.";
-    statusElement.style.color = "#4BB543"; 
+                if (isActuallySuccess) {
+                    document.getElementById("instruction").innerText = "Success! You can now exit.";
+                    statusElement.style.color = "#4BB543"; 
 
-    // 2. REVEAL THE BUTTON (Crucial Step)
-    if (closeBtn) {
-        closeBtn.style.display = "inline-block"; // Make it visible
-        closeBtn.style.pointerEvents = "auto";   // Make it clickable
-        closeBtn.style.opacity = "1";            // Ensure it's not faded
+                    if (closeBtn) {
+                        closeBtn.style.display = "inline-block";
+                    }
+                    if (buttonGroup) buttonGroup.style.display = "none";
+
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    const audio = document.getElementById("successSound");
+                    if (audio) audio.play().catch(e => console.log("Audio blocked"));
+                } else {
+                    statusElement.style.color = "#ff4d4d"; 
+                    statusElement.style.fontWeight = "bold";
+                }
+            })
+            .catch((err) => {
+                document.getElementById("status").innerText = "❌ Connection Error. Try again.";
+                document.getElementById("status").style.color = "#ff4d4d";
+            });
     }
 
-    // 3. HIDE THE OLD BUTTONS
-    if (buttonGroup) buttonGroup.style.display = "none";
-
-    // 4. Haptics & Sound
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    const audio = document.getElementById("successSound");
-    if (audio) audio.play().catch(e => console.log("Audio blocked"));
-}
+    // 5. THE NEW CLOSE FUNCTION
+    function closeSystem() {
+        window.close();
+        setTimeout(() => {
+            window.location.href = "about:blank"; 
+        }, 300);
+    }
 </script>
-  
+
 </body>
 </html>
