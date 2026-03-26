@@ -193,7 +193,7 @@ function sendRequest(action, lat, lon) {
       statusElement.innerText = data.message;
 
       // --- SUCCESS ACTIONS (The Reveal) ---
-      if (data.status === "success" || !data.message.includes("Error")) {
+      if (data.status === "success" && !data.message.includes("already checked in")) {
         
         // 1. Physical Thump (Android)
         if (navigator.vibrate) {
