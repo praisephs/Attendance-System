@@ -111,27 +111,110 @@
 </div>
 
   <script>
-    const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance";
 
-    // Get staffId from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const staffId = urlParams.get("staffId");
 
-    // --- NEW: FETCH NAME ON PAGE LOAD ---
- window.onload = function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const action = urlParams.get('action');
-    const staffId = urlParams.get('staffId');
+    // 1. GLOBAL VARIABLES (Ensure these are at the very top)
+const urlParams = new URLSearchParams(window.location.search);
+const staffId = urlParams.get('staffId');
+const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance"; 
 
+// 2. PAGE LOAD LOGIC (The Welcome Message)
+window.onload = function() {
     if (staffId) {
-        // 1. Always show the staff name
         fetch(`${webhookBase}?staffId=${staffId}&action=load`)
             .then(res => res.json())
             .then(data => {
                 if (data.display_name) {
                     document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
                 }
-            });
+            })
+            .catch(err => console.log("Load error:", err));
+    } else {
+        document.getElementById("greeting").innerText = "Welcome! (ID Missing)";
+    }
+};
+
+// 3. THE ACTION TRIGGER
+function sendAction(action) {
+    // Prime the audio for mobile browsers
+    const audio = document.getElementById("successSound");
+    if (audio) audio.load();
+
+    // Get location and send
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                sendRequest(action, position.coords.latitude, position.coords.longitude);
+            },
+            (error) => {
+                alert("GPS Error: Please enable location to check in.");
+            }
+        );
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+}
+
+// 4. THE MAIN REQUEST FUNCTION
+function sendRequest(action, lat, lon) {
+    let url = `${webhookBase}?staffId=${staffId}&action=${action}&lat=${lat}&lon=${lon}`;
+    
+    document.getElementById("status").innerText = "Processing...";
+
+    fetch(url)
+        .then(response => response.json())
+        .then((data) => {
+            const statusElement = document.getElementById("status");
+            const closeBtn = document.getElementById("close-btn");
+            const buttonGroup = document.getElementById("button-group");
+            
+            statusElement.innerText = data.message;
+
+            // SMARTER SUCCESS CHECK
+            const isActuallySuccess = data.status === "success" || (!data.message.includes("already checked in") && !data.message.includes("Error"));
+
+            if (isActuallySuccess) {
+                document.getElementById("instruction").innerText = "Success! You can now exit.";
+                if (closeBtn) closeBtn.style.display = "inline-block";
+                if (buttonGroup) buttonGroup.style.display = "none";
+                
+                // Haptics & Sound
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                const audio = document.getElementById("successSound");
+                if (audio) audio.play().catch(e => console.log("Audio blocked"));
+            } else {
+                statusElement.style.color = "#ff4d4d"; 
+                statusElement.style.fontWeight = "bold";
+            }
+        })
+        .catch((err) => {
+            document.getElementById("status").innerText = "❌ Connection Error. Try again.";
+            document.getElementById("status").style.color = "#ff4d4d";
+        });
+}
+    
+ //    const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance";
+
+ //    // Get staffId from URL
+ //    const urlParams = new URLSearchParams(window.location.search);
+ //    const staffId = urlParams.get("staffId");
+
+ //    // --- NEW: FETCH NAME ON PAGE LOAD ---
+ // window.onload = function() {
+ //    const urlParams = new URLSearchParams(window.location.search);
+ //    const action = urlParams.get('action');
+ //    const staffId = urlParams.get('staffId');
+
+ //    if (staffId) {
+ //        // 1. Always show the staff name
+ //        fetch(`${webhookBase}?staffId=${staffId}&action=load`)
+ //            .then(res => res.json())
+ //            .then(data => {
+ //                if (data.display_name) {
+ //                    document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
+ //                }
+ //            });
+ //    }
 
         // 2. If this is a scheduled verification link
         if (action === 'confirm') {
