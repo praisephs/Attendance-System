@@ -156,26 +156,29 @@
 
                 statusElement.innerText = data.message;
 
-                const isActuallySuccess = !data.message.includes("already checked in") && 
-                                         !data.message.includes("Error") && 
-                                         !data.message.includes("NOT AT WORKSTATION");
+               // --- UPDATED SUCCESS & ERROR LOGIC ---
+const isActuallySuccess = !data.message.includes("already checked in") && 
+                         !data.message.includes("Error") && 
+                         !data.message.includes("NOT AT WORKSTATION");
 
-                if (isActuallySuccess) {
-                    document.getElementById("instruction").innerText = "Success! You can now exit.";
-                    statusElement.style.color = "#4BB543"; 
-
-                    if (closeBtn) {
-                        closeBtn.style.display = "inline-block";
-                    }
-                    if (buttonGroup) buttonGroup.style.display = "none";
-
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                    const audio = document.getElementById("successSound");
-                    if (audio) audio.play().catch(e => console.log("Audio blocked"));
-                } else {
-                    statusElement.style.color = "#ff4d4d"; 
-                    statusElement.style.fontWeight = "bold";
-                }
+if (isActuallySuccess) {
+    document.getElementById("instruction").innerText = "Success! You can now exit.";
+    statusElement.style.color = "#4BB543"; // Success Green
+    statusElement.style.background = "transparent";
+    
+    if (closeBtn) closeBtn.style.display = "inline-block";
+    if (buttonGroup) buttonGroup.style.display = "none";
+} else {
+    // THIS PART HANDLES THE "OUT OF WORKSTATION" ALERT
+    statusElement.style.color = "#ffffff"; 
+    statusElement.style.background = "#ef4444"; // Bright Red Background
+    statusElement.style.padding = "15px";
+    statusElement.style.borderRadius = "10px";
+    statusElement.style.fontWeight = "bold";
+    
+    // Shake the phone for an error (if supported)
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
+}
             })
             .catch((err) => {
                 document.getElementById("status").innerText = "❌ Connection Error. Try again.";
