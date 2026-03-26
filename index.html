@@ -181,29 +181,29 @@
 
                 statusElement.innerText = data.message;
 
-                // --- SUCCESS CHECK ---
-                const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error") && !data.message.includes("NOT AT WORKSTATION");
+               // --- SUCCESS CHECK ---
+const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error") && !data.message.includes("NOT AT WORKSTATION");
 
-                if (isActuallySuccess) {
-                    document.getElementById("instruction").innerText = "Success! You can now exit.";
-                    statusElement.style.color = "#4BB543"; // Success Green
-                    if (closeBtn) closeBtn.style.display = "inline-block";
-                    if (buttonGroup) buttonGroup.style.display = "none";
+if (isActuallySuccess) {
+    // 1. Update text
+    document.getElementById("instruction").innerText = "Success! You can now exit.";
+    statusElement.style.color = "#4BB543"; 
 
-                    // Haptics & Sound
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                    const audio = document.getElementById("successSound");
-                    if (audio) audio.play().catch(e => console.log("Audio blocked"));
-                } else {
-                    statusElement.style.color = "#ff4d4d"; // Error Red
-                    statusElement.style.fontWeight = "bold";
-                }
-            })
-            .catch((err) => {
-                document.getElementById("status").innerText = "❌ Connection Error. Try again.";
-                document.getElementById("status").style.color = "#ff4d4d";
-            });
+    // 2. REVEAL THE BUTTON (Crucial Step)
+    if (closeBtn) {
+        closeBtn.style.display = "inline-block"; // Make it visible
+        closeBtn.style.pointerEvents = "auto";   // Make it clickable
+        closeBtn.style.opacity = "1";            // Ensure it's not faded
     }
+
+    // 3. HIDE THE OLD BUTTONS
+    if (buttonGroup) buttonGroup.style.display = "none";
+
+    // 4. Haptics & Sound
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    const audio = document.getElementById("successSound");
+    if (audio) audio.play().catch(e => console.log("Audio blocked"));
+}
 </script>
   
 </body>
