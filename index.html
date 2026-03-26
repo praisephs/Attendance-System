@@ -71,6 +71,8 @@
 
 <body>
 
+  <audio id="successSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
  <div class="container">
     <h1 id="greeting">Welcome</h1> 
     
@@ -133,6 +135,8 @@
 };
 
     function sendAction(action) {
+      // This "wakes up" the audio so it can play later in the fetch response
+    document.getElementById("successSound").load();
       if (!staffId) {
         document.getElementById("status").innerText = "Missing staff ID!";
         return;
@@ -163,20 +167,30 @@ function sendRequest(action, lat, lon) {
   fetch(url)
     .then(response => response.json())
     .then((data) => {
-      // --- THE VIBRATE PULSE ---
-                // 200ms vibrate, 100ms pause, 200ms vibrate (Double Thump)
-                if (navigator.vibrate) {
-                    navigator.vibrate([200, 100, 200]);
-                }
       const statusElement = document.getElementById("status");
       statusElement.innerText = data.message;
 
-      // The Checkmate Logic
+      // --- THE CONFIRMATION LOGIC ---
+      if (data.status === "success" || !data.message.includes("Error")) {
+          
+          // 1. Try to Vibrate (Android)
+          if (navigator.vibrate) {
+              navigator.vibrate([200, 100, 200]);
+          }
+
+          // 2. Play Sound (iPhone & Android Backup)
+          const audio = document.getElementById("successSound");
+          if (audio) {
+              audio.play().catch(e => console.log("Audio blocked until user interacts"));
+          }
+      }
+
+      // The Checkmate Visuals
       if (data.message.includes("NOT AT WORKSTATION")) {
-        statusElement.style.color = "#ff4d4d"; // Scary Red
+        statusElement.style.color = "#ff4d4d"; 
         statusElement.style.fontWeight = "bold";
       } else {
-        statusElement.style.color = "#4BB543"; // Success Green
+        statusElement.style.color = "#4BB543"; 
         statusElement.style.fontWeight = "normal";
       }
     })
