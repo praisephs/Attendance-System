@@ -163,6 +163,11 @@ function sendRequest(action, lat, lon) {
   fetch(url)
     .then(response => response.json())
     .then((data) => {
+      // --- THE VIBRATE PULSE ---
+                // 200ms vibrate, 100ms pause, 200ms vibrate (Double Thump)
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
       const statusElement = document.getElementById("status");
       statusElement.innerText = data.message;
 
