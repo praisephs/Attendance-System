@@ -186,28 +186,35 @@ function sendRequest(action, lat, lon) {
   fetch(url)
     .then(response => response.json())
     .then((data) => {
-    const statusElement = document.getElementById("status");
-    const closeBtn = document.getElementById("close-btn");
-    
-    statusElement.innerText = data.message;
+      const statusElement = document.getElementById("status");
+      const closeBtn = document.getElementById("close-btn");
+      
+      statusElement.innerText = data.message;
 
-    // --- SMARTER SUCCESS CHECK ---
-    // Only show the "Exit" UI if it's a fresh recording, not a double-check-in
-    const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error");
+      // --- SMARTER SUCCESS CHECK ---
+      const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error");
 
-    if (isActuallySuccess) {
-        document.getElementById("instruction").innerText = "Success! You can now exit.";
-        closeBtn.style.display = "inline-block";
-        document.getElementById("button-group").style.display = "none";
-        
-        // Trigger haptics only for actual success
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    } else {
-        // This handles the "Already checked in" or "Not at workstation" look
-        statusElement.style.color = "#ff4d4d"; 
-        statusElement.style.fontWeight = "bold";
-    }
-})
+      if (isActuallySuccess) {
+          document.getElementById("instruction").innerText = "Success! You can now exit.";
+          if (closeBtn) closeBtn.style.display = "inline-block";
+          document.getElementById("button-group").style.display = "none";
+          
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          
+          // Play the sound we added earlier
+          const audio = document.getElementById("successSound");
+          if (audio) audio.play().catch(e => console.log("Audio play blocked"));
+          
+      } else {
+          statusElement.style.color = "#ff4d4d"; 
+          statusElement.style.fontWeight = "bold";
+      }
+    }) // This was missing
+    .catch((err) => {
+      document.getElementById("status").innerText = "❌ Connection Error. Try again.";
+      document.getElementById("status").style.color = "#ff4d4d";
+    }); // This handles the error path
+} // This closes the function
       // --- SUCCESS ACTIONS (The Reveal) ---
       if (data.status === "success" && !data.message.includes("already checked in")) {
         
