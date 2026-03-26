@@ -186,12 +186,28 @@ function sendRequest(action, lat, lon) {
   fetch(url)
     .then(response => response.json())
     .then((data) => {
-      const statusElement = document.getElementById("status");
-      const closeBtn = document.getElementById("close-btn"); // The new Close button
-      const buttonGroup = document.getElementById("button-group");
-      
-      statusElement.innerText = data.message;
+    const statusElement = document.getElementById("status");
+    const closeBtn = document.getElementById("close-btn");
+    
+    statusElement.innerText = data.message;
 
+    // --- SMARTER SUCCESS CHECK ---
+    // Only show the "Exit" UI if it's a fresh recording, not a double-check-in
+    const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error");
+
+    if (isActuallySuccess) {
+        document.getElementById("instruction").innerText = "Success! You can now exit.";
+        closeBtn.style.display = "inline-block";
+        document.getElementById("button-group").style.display = "none";
+        
+        // Trigger haptics only for actual success
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } else {
+        // This handles the "Already checked in" or "Not at workstation" look
+        statusElement.style.color = "#ff4d4d"; 
+        statusElement.style.fontWeight = "bold";
+    }
+})
       // --- SUCCESS ACTIONS (The Reveal) ---
       if (data.status === "success" && !data.message.includes("already checked in")) {
         
