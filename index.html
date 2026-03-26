@@ -110,230 +110,101 @@
 </button>
 </div>
 
-  <script>
+<script>
+    // 1. GLOBAL VARIABLES
+    const urlParams = new URLSearchParams(window.location.search);
+    const staffId = urlParams.get('staffId');
+    const action = urlParams.get('action');
+    const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance";
 
+    // 2. PAGE LOAD LOGIC
+    window.onload = function() {
+        if (staffId) {
+            // Fetch the staff name
+            fetch(`${webhookBase}?staffId=${staffId}&action=load`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.display_name) {
+                        document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
+                    }
+                })
+                .catch(err => console.log("Load error:", err));
 
-    // 1. GLOBAL VARIABLES (Ensure these are at the very top)
-const urlParams = new URLSearchParams(window.location.search);
-const staffId = urlParams.get('staffId');
-const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance"; 
+            // Logic for Verification Mode (from Email)
+            if (action === 'confirm') {
+                document.getElementById("button-group").style.display = "none";
+                document.getElementById("instruction").style.display = "none";
+                document.getElementById("greeting").innerText = "Verification Mode";
+                document.getElementById("status").innerText = "📍 Confirming your location...";
 
-// 2. PAGE LOAD LOGIC (The Welcome Message)
-window.onload = function() {
-    if (staffId) {
-        fetch(`${webhookBase}?staffId=${staffId}&action=load`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.display_name) {
-                    document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
+                navigator.geolocation.getCurrentPosition((position) => {
+                    sendRequest('confirm', position.coords.latitude, position.coords.longitude);
+                }, (error) => {
+                    document.getElementById("status").innerText = "❌ Please enable GPS to verify.";
+                });
+            }
+        } else {
+            document.getElementById("greeting").innerText = "Welcome! (ID Missing)";
+        }
+    };
+
+    // 3. MANUAL BUTTON TRIGGER
+    function sendAction(actionType) {
+        document.getElementById("successSound").load(); // Wake up audio
+        document.getElementById("status").innerText = "Processing...";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    sendRequest(actionType, position.coords.latitude, position.coords.longitude);
+                },
+                () => {
+                    sendRequest(actionType, null, null); // Fallback if GPS fails
+                }
+            );
+        } else {
+            sendRequest(actionType, null, null);
+        }
+    }
+
+    // 4. THE MAIN REQUEST FUNCTION
+    function sendRequest(actionType, lat, lon) {
+        let url = `${webhookBase}?staffId=${staffId}&action=${actionType}`;
+        if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then((data) => {
+                const statusElement = document.getElementById("status");
+                const closeBtn = document.getElementById("close-btn");
+                const buttonGroup = document.getElementById("button-group");
+
+                statusElement.innerText = data.message;
+
+                // --- SUCCESS CHECK ---
+                const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error") && !data.message.includes("NOT AT WORKSTATION");
+
+                if (isActuallySuccess) {
+                    document.getElementById("instruction").innerText = "Success! You can now exit.";
+                    statusElement.style.color = "#4BB543"; // Success Green
+                    if (closeBtn) closeBtn.style.display = "inline-block";
+                    if (buttonGroup) buttonGroup.style.display = "none";
+
+                    // Haptics & Sound
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    const audio = document.getElementById("successSound");
+                    if (audio) audio.play().catch(e => console.log("Audio blocked"));
+                } else {
+                    statusElement.style.color = "#ff4d4d"; // Error Red
+                    statusElement.style.fontWeight = "bold";
                 }
             })
-            .catch(err => console.log("Load error:", err));
-    } else {
-        document.getElementById("greeting").innerText = "Welcome! (ID Missing)";
-    }
-};
-
-// 3. THE ACTION TRIGGER
-function sendAction(action) {
-    // Prime the audio for mobile browsers
-    const audio = document.getElementById("successSound");
-    if (audio) audio.load();
-
-    // Get location and send
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                sendRequest(action, position.coords.latitude, position.coords.longitude);
-            },
-            (error) => {
-                alert("GPS Error: Please enable location to check in.");
-            }
-        );
-    } else {
-        alert("Geolocation is not supported by this browser.");
-    }
-}
-
-// 4. THE MAIN REQUEST FUNCTION
-function sendRequest(action, lat, lon) {
-    let url = `${webhookBase}?staffId=${staffId}&action=${action}&lat=${lat}&lon=${lon}`;
-    
-    document.getElementById("status").innerText = "Processing...";
-
-    fetch(url)
-        .then(response => response.json())
-        .then((data) => {
-            const statusElement = document.getElementById("status");
-            const closeBtn = document.getElementById("close-btn");
-            const buttonGroup = document.getElementById("button-group");
-            
-            statusElement.innerText = data.message;
-
-            // SMARTER SUCCESS CHECK
-            const isActuallySuccess = data.status === "success" || (!data.message.includes("already checked in") && !data.message.includes("Error"));
-
-            if (isActuallySuccess) {
-                document.getElementById("instruction").innerText = "Success! You can now exit.";
-                if (closeBtn) closeBtn.style.display = "inline-block";
-                if (buttonGroup) buttonGroup.style.display = "none";
-                
-                // Haptics & Sound
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                const audio = document.getElementById("successSound");
-                if (audio) audio.play().catch(e => console.log("Audio blocked"));
-            } else {
-                statusElement.style.color = "#ff4d4d"; 
-                statusElement.style.fontWeight = "bold";
-            }
-        })
-        .catch((err) => {
-            document.getElementById("status").innerText = "❌ Connection Error. Try again.";
-            document.getElementById("status").style.color = "#ff4d4d";
-        });
-}
-    
- //    const webhookBase = "https://uyipraise.app.n8n.cloud/webhook/attendance";
-
- //    // Get staffId from URL
- //    const urlParams = new URLSearchParams(window.location.search);
- //    const staffId = urlParams.get("staffId");
-
- //    // --- NEW: FETCH NAME ON PAGE LOAD ---
- // window.onload = function() {
- //    const urlParams = new URLSearchParams(window.location.search);
- //    const action = urlParams.get('action');
- //    const staffId = urlParams.get('staffId');
-
- //    if (staffId) {
- //        // 1. Always show the staff name
- //        fetch(`${webhookBase}?staffId=${staffId}&action=load`)
- //            .then(res => res.json())
- //            .then(data => {
- //                if (data.display_name) {
- //                    document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
- //                }
- //            });
- //    }
-
-        // 2. If this is a scheduled verification link
-        if (action === 'confirm') {
-            // HIDE the buttons and the instruction text
-            document.getElementById("button-group").style.display = "none";
-            document.getElementById("instruction").style.display = "none";
-            
-            // Update the header to show they are in verification mode
-            document.getElementById("greeting").innerText = "Verification Mode";
-            document.getElementById("status").innerText = "📍 Confirming your location...";
-
-            // Auto-trigger GPS
-            navigator.geolocation.getCurrentPosition((position) => {
-                sendRequest('confirm', position.coords.latitude, position.coords.longitude);
-            }, (error) => {
-                document.getElementById("status").innerText = "❌ Please enable GPS to verify.";
+            .catch((err) => {
+                document.getElementById("status").innerText = "❌ Connection Error. Try again.";
+                document.getElementById("status").style.color = "#ff4d4d";
             });
-        }
     }
-};
-
-    function sendAction(action) {
-      // This "wakes up" the audio so it can play later in the fetch response
-    document.getElementById("successSound").load();
-      if (!staffId) {
-        document.getElementById("status").innerText = "Missing staff ID!";
-        return;
-      }
-
-      document.getElementById("status").innerText = "Processing...";
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            sendRequest(action, position.coords.latitude, position.coords.longitude);
-          },
-          () => {
-            sendRequest(action, null, null); // Proceed even if GPS fails
-          }
-        );
-      } else {
-        sendRequest(action, null, null);
-      }
-    }
-
-function sendRequest(action, lat, lon) {
-  let url = `${webhookBase}?staffId=${staffId}&action=${action}`;
-  if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
-
-  document.getElementById("status").innerText = "Processing...";
-
-  fetch(url)
-    .then(response => response.json())
-    .then((data) => {
-      const statusElement = document.getElementById("status");
-      const closeBtn = document.getElementById("close-btn");
-      
-      statusElement.innerText = data.message;
-
-      // --- SMARTER SUCCESS CHECK ---
-      const isActuallySuccess = !data.message.includes("already checked in") && !data.message.includes("Error");
-
-      if (isActuallySuccess) {
-          document.getElementById("instruction").innerText = "Success! You can now exit.";
-          if (closeBtn) closeBtn.style.display = "inline-block";
-          document.getElementById("button-group").style.display = "none";
-          
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-          
-          // Play the sound we added earlier
-          const audio = document.getElementById("successSound");
-          if (audio) audio.play().catch(e => console.log("Audio play blocked"));
-          
-      } else {
-          statusElement.style.color = "#ff4d4d"; 
-          statusElement.style.fontWeight = "bold";
-      }
-    }) // This was missing
-    .catch((err) => {
-      document.getElementById("status").innerText = "❌ Connection Error. Try again.";
-      document.getElementById("status").style.color = "#ff4d4d";
-    }); // This handles the error path
-} // This closes the function
-      // --- SUCCESS ACTIONS (The Reveal) ---
-      if (data.status === "success" && !data.message.includes("already checked in")) {
-        
-        // 1. Physical Thump (Android)
-        if (navigator.vibrate) {
-          navigator.vibrate([200, 100, 200]);
-        }
-
-        // 2. Play the Sound (iPhone/Android Backup)
-        const audio = document.getElementById("successSound");
-        if (audio) {
-          audio.play().catch(e => console.log("Audio play blocked"));
-        }
-
-        // 3. Show the Close Button & Hide Check-in Buttons
-        if (closeBtn) closeBtn.style.display = "inline-block";
-        if (buttonGroup) buttonGroup.style.display = "none";
-        document.getElementById("instruction").innerText = "Success! You can now exit.";
-      }
-
-      // --- COLOR LOGIC ---
-      if (data.message.includes("NOT AT WORKSTATION")) {
-        statusElement.style.color = "#ff4d4d"; // Red
-        statusElement.style.fontWeight = "bold";
-      } else {
-        statusElement.style.color = "#4BB543"; // Green
-        statusElement.style.fontWeight = "normal";
-      }
-    })
-    .catch((err) => {
-      document.getElementById("status").innerText = "❌ Connection Error. Try again.";
-      document.getElementById("status").style.color = "#ff4d4d";
-    });
-}
-    
 </script>
-
+  
 </body>
 </html>
