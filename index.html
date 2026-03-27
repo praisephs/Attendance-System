@@ -165,7 +165,7 @@
 
             if (isActuallySuccess) {
                 // REAL SUCCESS LOGIC
-                instructionElement.innerText = "Success! You can now exit.";
+                instructionElement.innerText = actionType === 'checkout' ? "Shift Ended. Have a great day!" : "Success! You can now exit.";
                 statusElement.style.color = "#4BB543"; // Success Green
                 statusElement.style.background = "transparent";
                 statusElement.style.padding = "0px";
