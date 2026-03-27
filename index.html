@@ -143,7 +143,8 @@
     }
 
     // 4. THE MAIN REQUEST FUNCTION
-    function sendRequest(actionType, lat, lon) {
+
+     function sendRequest(actionType, lat, lon) {
     let url = `${webhookBase}?staffId=${staffId}&action=${actionType}`;
     if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
 
@@ -159,28 +160,14 @@
             statusElement.innerText = data.message;
 
             // --- DEFINE THE STATUS TYPES ---
-            } else if (isDuplicate) {
-    // Check if the message is about a missing check-in
-    if (data.message.includes("no check-in was found")) {
-        instructionElement.innerText = "Missing Record";
-    } else {
-        instructionElement.innerText = "Entry Already Exists";
-    }
-    
-    statusElement.style.color = "#ffffff"; 
-    statusElement.style.background = "#f59e0b"; // Amber/Orange
-    statusElement.style.padding = "15px";
-    statusElement.style.borderRadius = "10px";
-    
-    if (closeBtn) closeBtn.style.display = "inline-block";
-    if (buttonGroup) buttonGroup.style.display = "none";
-}
+            // A duplicate is identified by the warning emoji or specific text
+            const isDuplicateOrMissing = data.message.includes("already") || data.message.includes("⚠️") || data.message.includes("no check-in was found");
             const isError = data.message.includes("Error") || data.message.includes("NOT AT WORKSTATION") || data.message.includes("❌");
-            const isActuallySuccess = !isDuplicate && !isError;
+            const isActuallySuccess = !isDuplicateOrMissing && !isError;
 
             if (isActuallySuccess) {
                 // REAL SUCCESS LOGIC
-                instructionElement.innerText = actionType === 'checkout' ? "Shift Ended. Have a great day!" : "Success! You can now exit.";
+                instructionElement.innerText = actionType === 'checkout' ? "Shift Ended. Have a great day!" : "Location Confirmed";
                 statusElement.style.color = "#4BB543"; // Success Green
                 statusElement.style.background = "transparent";
                 statusElement.style.padding = "0px";
@@ -188,9 +175,14 @@
                 if (closeBtn) closeBtn.style.display = "inline-block";
                 if (buttonGroup) buttonGroup.style.display = "none";
 
-            } else if (isDuplicate) {
-                // DUPLICATE WARNING LOGIC (No "Success" header)
-                instructionElement.innerText = "Entry Already Exists";
+            } else if (isDuplicateOrMissing) {
+                // WARNING LOGIC (Duplicate Check-in/Out OR Missing Check-in)
+                if (data.message.includes("no check-in was found")) {
+                    instructionElement.innerText = "Missing Record";
+                } else {
+                    instructionElement.innerText = "Entry Already Exists";
+                }
+
                 statusElement.style.color = "#ffffff"; 
                 statusElement.style.background = "#f59e0b"; // Amber/Orange Background
                 statusElement.style.padding = "15px";
@@ -202,7 +194,7 @@
 
             } else {
                 // ERROR / OUT OF WORKSTATION LOGIC
-                instructionElement.innerText = "Verification Failed";
+                instructionElement.innerText = "Location Check Failed";
                 statusElement.style.color = "#ffffff"; 
                 statusElement.style.background = "#ef4444"; // Bright Red Background
                 statusElement.style.padding = "15px";
@@ -218,8 +210,8 @@
             document.getElementById("status").style.color = "#ff4d4d";
             document.getElementById("status").style.background = "transparent";
         });
-}
-
+} 
+  
     // 5. THE NEW CLOSE FUNCTION
     function closeSystem() {
         window.close();
