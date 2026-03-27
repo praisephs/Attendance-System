@@ -159,7 +159,22 @@
             statusElement.innerText = data.message;
 
             // --- DEFINE THE STATUS TYPES ---
-            const isDuplicate = data.message.includes("already checked in") || data.message.includes("⚠️");
+            } else if (isDuplicate) {
+    // Check if the message is about a missing check-in
+    if (data.message.includes("no check-in was found")) {
+        instructionElement.innerText = "Missing Record";
+    } else {
+        instructionElement.innerText = "Entry Already Exists";
+    }
+    
+    statusElement.style.color = "#ffffff"; 
+    statusElement.style.background = "#f59e0b"; // Amber/Orange
+    statusElement.style.padding = "15px";
+    statusElement.style.borderRadius = "10px";
+    
+    if (closeBtn) closeBtn.style.display = "inline-block";
+    if (buttonGroup) buttonGroup.style.display = "none";
+}
             const isError = data.message.includes("Error") || data.message.includes("NOT AT WORKSTATION") || data.message.includes("❌");
             const isActuallySuccess = !isDuplicate && !isError;
 
