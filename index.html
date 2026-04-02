@@ -175,12 +175,11 @@
                 
                 if (closeBtn) closeBtn.style.display = "inline-block";
                 if (buttonGroup) buttonGroup.style.display = "none";
-
-            } else if (isDuplicateOrMissing) {
-                // WARNING LOGIC (Duplicate Check-in/Out OR Missing Check-in)
+            
+                      } else if (isDuplicateOrMissing) {
                 if (data.message.includes("no check-in was found")) {
                     instructionElement.innerText = "Missing Record";
-                } else {
+                } else if (data.message.includes("already")) {
                     instructionElement.innerText = "Entry Already Exists";
                 }
 
