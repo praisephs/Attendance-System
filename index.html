@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Staff Attendance</title>
+  <title>Uyi Tech Attendance</title>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #0f172a;
       color: white;
       display: flex;
@@ -20,206 +20,180 @@
     .container {
       background: #1e293b;
       padding: 30px;
-      border-radius: 15px;
+      border-radius: 20px;
       text-align: center;
       width: 90%;
       max-width: 400px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
 
-    h1 { margin-bottom: 10px; }
-    p { color: #94a3b8; margin-bottom: 20px; }
+    h1 { margin-bottom: 5px; font-size: 24px; }
+    p { color: #94a3b8; margin-bottom: 25px; font-size: 14px; }
 
     button {
       width: 100%;
-      padding: 15px;
-      margin: 10px 0;
+      padding: 16px;
+      margin: 12px 0;
       border: none;
-      border-radius: 10px;
-      font-size: 16px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
       cursor: pointer;
-      transition: 0.3s;
+      transition: all 0.2s ease;
     }
 
-    .checkin { background: #22c55e; color: white; }
-    .checkout { background: #ef4444; color: white; }
-    button:hover { opacity: 0.85; }
+    .checkin { background: #22c55e; color: white; box-shadow: 0 4px 0 #16a34a; }
+    .checkout { background: #ef4444; color: white; box-shadow: 0 4px 0 #dc2626; }
+    
+    button:active { transform: translateY(3px); box-shadow: none; }
+    button:disabled { background: #475569; opacity: 0.6; cursor: not-allowed; box-shadow: none; }
 
     .status {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #38bdf8;
+      margin-top: 20px;
+      font-size: 16px;
+      line-height: 1.4;
+      transition: all 0.3s ease;
     }
 
     #close-btn {
-      background-color: #d32f2f;
+      background-color: #334155;
       color: white;
-      border: none;
-      padding: 15px 30px;
-      font-size: 18px;
-      font-weight: bold;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
       display: none; 
       margin-top: 20px;
+      font-size: 16px;
     }
-
-    #close-btn:active { transform: scale(0.95); }
   </style>
 </head>
 
 <body>
-
-  <audio id="successSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
-
   <div class="container">
-    <h1 id="greeting">Welcome</h1> 
-    <p id="instruction">Tap below to record your time</p>
+    <h1 id="greeting">Connecting...</h1> 
+    <p id="instruction">Please wait while we verify your ID</p>
 
-    <div id="button-group">
+    <div id="button-group" style="display: none;">
         <button class="checkin" onclick="sendAction('checkin')">✅ Check In</button>
         <button class="checkout" onclick="sendAction('checkout')">❌ Check Out</button>
     </div>
 
     <div class="status" id="status"></div>
     
-    <button id="close-btn" onclick="closeSystem()">🔴 Close & Exit</button>
+    <button id="close-btn" onclick="closeSystem()">Done & Exit</button>
   </div>
 
 <script>
-    // 1. GLOBAL VARIABLES
     const urlParams = new URLSearchParams(window.location.search);
     const staffId = urlParams.get('staffId');
-    const action = urlParams.get('action');
-    const webhookBase = "https://uyitechsolutions.com/webhook/attendance";
-  
+    const webhookBase = "https://uyitechsolutions.com/webhook/attendancecopy";
 
-    // 2. PAGE LOAD LOGIC
+    // 1. INITIAL LOAD
     window.onload = function() {
-        if (staffId) {
-            fetch(`${webhookBase}?staffId=${staffId}&action=load`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.display_name) {
-                        document.getElementById("greeting").innerText = `Good day, ${data.display_name} 👋`;
-                    }
-                })
-                .catch(err => console.log("Load error:", err));
-
-            if (action === 'confirm') {
-                document.getElementById("button-group").style.display = "none";
-                document.getElementById("instruction").style.display = "none";
-                document.getElementById("greeting").innerText = "Verification Mode";
-                document.getElementById("status").innerText = "📍 Confirming your location...";
-
-                navigator.geolocation.getCurrentPosition((position) => {
-                    sendRequest('confirm', position.coords.latitude, position.coords.longitude);
-                }, (error) => {
-                    document.getElementById("status").innerText = "❌ Please enable GPS to verify.";
-                });
-            }
-        } else {
-            document.getElementById("greeting").innerText = "Welcome! (ID Missing)";
+        if (!staffId) {
+            document.getElementById("greeting").innerText = "Error";
+            document.getElementById("instruction").innerText = "Staff ID is missing from URL.";
+            return;
         }
+
+        // Fetch name on load
+        fetch(`${webhookBase}?staffId=${staffId}&action=load`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.Name) {
+                    document.getElementById("greeting").innerText = `Hi, ${data.Name} 👋`;
+                    document.getElementById("instruction").innerText = "Ready to log your attendance?";
+                    document.getElementById("button-group").style.display = "block";
+                } else {
+                    document.getElementById("greeting").innerText = "Unknown ID";
+                    document.getElementById("status").innerText = "Staff ID not recognized.";
+                }
+            })
+            .catch(err => {
+                document.getElementById("status").innerText = "Connection Error.";
+                console.error(err);
+            });
     };
 
-    // 3. MANUAL BUTTON TRIGGER
+    // 2. ACTION TRIGGER
     function sendAction(actionType) {
-        document.getElementById("successSound").load();
-        document.getElementById("status").innerText = "Processing...";
+        const statusElement = document.getElementById("status");
+        const btns = document.querySelectorAll('button');
+        
+        statusElement.innerText = "⏳ Verifying Location...";
+        statusElement.style.background = "transparent";
+        statusElement.style.color = "#38bdf8";
+        
+        // Disable buttons during processing
+        btns.forEach(b => b.disabled = true);
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     sendRequest(actionType, position.coords.latitude, position.coords.longitude);
                 },
-                () => {
-                    sendRequest(actionType, null, null);
-                }
+                (error) => {
+                    statusElement.innerText = "📍 GPS Error: Please enable location services.";
+                    btns.forEach(b => b.disabled = false);
+                },
+                { enableHighAccuracy: true }
             );
         } else {
-            sendRequest(actionType, null, null);
+            statusElement.innerText = "❌ Your browser doesn't support GPS.";
+            btns.forEach(b => b.disabled = false);
         }
     }
 
-    // 4. THE MAIN REQUEST FUNCTION
+    // 3. SEND TO N8N
+    function sendRequest(actionType, lat, long) {
+        let url = `${webhookBase}?staffId=${staffId}&action=${actionType}&lat=${lat}&long=${long}`;
 
-     function sendRequest(actionType, lat, lon) {
-    let url = `${webhookBase}?staffId=${staffId}&action=${actionType}`;
-    if (lat && lon) url += `&lat=${lat}&lon=${lon}`;
+        fetch(url)
+            .then(response => response.json())
+            .then((data) => {
+                const statusElement = document.getElementById("status");
+                const instructionElement = document.getElementById("instruction");
+                const closeBtn = document.getElementById("close-btn");
+                const buttonGroup = document.getElementById("button-group");
 
-    fetch(url)
-        .then(response => response.json())
-        .then((data) => {
-            const statusElement = document.getElementById("status");
-            const instructionElement = document.getElementById("instruction");
-            const closeBtn = document.getElementById("close-btn");
-            const buttonGroup = document.getElementById("button-group");
+                statusElement.innerText = data.message;
 
-            // Put the n8n message into the status box
-            statusElement.innerText = data.message;
+                // Identify status based on emojis used in n8n
+                const isSuccess = data.message.includes("✅");
+                const isWarning = data.message.includes("⚠️");
+                const isError = data.message.includes("❌");
 
-            // --- DEFINE THE STATUS TYPES ---
-            // A duplicate is identified by the warning emoji or specific text
-            const isDuplicateOrMissing = data.message.includes("already") || data.message.includes("⚠️") || data.message.includes("no check-in was found");
-            const isError = data.message.includes("Error") || data.message.includes("NOT AT WORKSTATION") || data.message.includes("❌");
-            const isActuallySuccess = !isDuplicateOrMissing && !isError;
-
-            if (isActuallySuccess) {
-                // REAL SUCCESS LOGIC
-                instructionElement.innerText = actionType === 'checkout' ? "Shift Ended. Have a great day!" : "Location Confirmed";
-                statusElement.style.color = "#4BB543"; // Success Green
-                statusElement.style.background = "transparent";
-                statusElement.style.padding = "0px";
-                
-                if (closeBtn) closeBtn.style.display = "inline-block";
-                if (buttonGroup) buttonGroup.style.display = "none";
-            
-                      } else if (isDuplicateOrMissing) {
-                if (data.message.includes("no check-in was found")) {
-                    instructionElement.innerText = "Missing Record";
-                } else if (data.message.includes("already")) {
-                    instructionElement.innerText = "Entry Already Exists";
+                if (isSuccess) {
+                    statusElement.style.color = "#ffffff";
+                    statusElement.style.background = "#16a34a";
+                    statusElement.style.padding = "15px";
+                    statusElement.style.borderRadius = "12px";
+                    buttonGroup.style.display = "none";
+                    closeBtn.style.display = "block";
+                } else if (isWarning) {
+                    statusElement.style.color = "#ffffff";
+                    statusElement.style.background = "#f59e0b";
+                    statusElement.style.padding = "15px";
+                    statusElement.style.borderRadius = "12px";
+                    buttonGroup.style.display = "none";
+                    closeBtn.style.display = "block";
+                } else {
+                    // It's a hard error (Too far away) - let them try again
+                    statusElement.style.color = "#ffffff";
+                    statusElement.style.background = "#ef4444";
+                    statusElement.style.padding = "15px";
+                    statusElement.style.borderRadius = "12px";
+                    document.querySelectorAll('button').forEach(b => b.disabled = false);
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                 }
+            })
+            .catch((err) => {
+                document.getElementById("status").innerText = "❌ System Timeout. Please try again.";
+                document.querySelectorAll('button').forEach(b => b.disabled = false);
+            });
+    }
 
-                statusElement.style.color = "#ffffff"; 
-                statusElement.style.background = "#f59e0b"; // Amber/Orange Background
-                statusElement.style.padding = "15px";
-                statusElement.style.borderRadius = "10px";
-                statusElement.style.fontWeight = "bold";
-
-                if (closeBtn) closeBtn.style.display = "inline-block";
-                if (buttonGroup) buttonGroup.style.display = "none";
-
-            } else {
-                // ERROR / OUT OF WORKSTATION LOGIC
-                instructionElement.innerText = "Location Check Failed";
-                statusElement.style.color = "#ffffff"; 
-                statusElement.style.background = "#ef4444"; // Bright Red Background
-                statusElement.style.padding = "15px";
-                statusElement.style.borderRadius = "10px";
-                statusElement.style.fontWeight = "bold";
-                
-                // Shake the phone for an error
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
-            }
-        })
-        .catch((err) => {
-            document.getElementById("status").innerText = "❌ Connection Error. Try again.";
-            document.getElementById("status").style.color = "#ff4d4d";
-            document.getElementById("status").style.background = "transparent";
-        });
-} 
-  
-    // 5. THE NEW CLOSE FUNCTION
     function closeSystem() {
         window.close();
-        setTimeout(() => {
-            window.location.href = "about:blank"; 
-        }, 300);
+        setTimeout(() => { window.location.href = "about:blank"; }, 300);
     }
 </script>
-
 </body>
 </html>
